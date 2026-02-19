@@ -389,10 +389,18 @@ function checkAndSendDailySummary() {
 
   try {
     const dailyData = JSON.parse(dailyDataStr);
+
+    // If data is from a previous day, we should clear it or update it
+    if (dailyData.date && dailyData.date !== now.toDateString()) {
+      Logger.log(`Clearing stale data from ${dailyData.date}`);
+      props.deleteProperty(CONFIG.DAILY_SUMMARY_KEY);
+      return;
+    }
+
     if (!dailyData || dailyData.totalSuccessfullySent === 0) {
       Logger.log('Daily data exists but contains 0 packages. Skipping email.');
-      // Update sent flag even if skipped to avoid repeated checks this hour
       props.setProperty('LAST_DAILY_SUMMARY_SENT', now.toDateString());
+      props.deleteProperty(CONFIG.DAILY_SUMMARY_KEY); // Clear it so we don't keep checking stale 0-data
       return;
     }
 
