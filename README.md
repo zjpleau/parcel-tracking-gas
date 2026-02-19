@@ -41,4 +41,3 @@ This utility integrates with [Parcel App](https://web.parcelapp.net/). You must 
 
 Required Script Properties:
 - `PARCEL_API_KEY`: Your API key from the Parcel App settings.
-- `PARCEL_API_URL`: (Optional) Target API endpoint.

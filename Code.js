@@ -19,7 +19,6 @@ function getTrackingUrl(carrier, number) {
 // Configuration
 const CONFIG = {
   PARCEL_API_KEY: PropertiesService.getScriptProperties().getProperty('PARCEL_API_KEY'),
-  PARCEL_API_URL: PropertiesService.getScriptProperties().getProperty('PARCEL_API_URL') || 'https://api.parcel.app/external/add-delivery/',
   HOURS_TO_SCAN: 336, // 14 days
   LABEL_PROCESSED: 'Tracking/Processed',
   LABEL_DELIVERED: 'Tracking/Delivered',
@@ -277,8 +276,9 @@ function extractDescription(subject, body, senderEmail) {
  */
 function sendToParcelAPI(data) {
   try {
+    const apiUrl = 'https://api.parcel.app/external/add-delivery/';
     const options = { method: 'post', contentType: 'application/json', headers: { 'api-key': CONFIG.PARCEL_API_KEY }, payload: JSON.stringify(data), muteHttpExceptions: true };
-    const response = UrlFetchApp.fetch(CONFIG.PARCEL_API_URL, options);
+    const response = UrlFetchApp.fetch(apiUrl, options);
     const success = response.getResponseCode() >= 200 && response.getResponseCode() < 300;
     recordApiActivity(success);
     return success;
