@@ -11,7 +11,7 @@ function getTrackingUrl(carrier, number) {
     'ups': `https://www.ups.com/track?tracknum=${number}`,
     'usps': `https://tools.usps.com/go/TrackConfirmAction?tLabels=${number}`,
     'fedex': `https://www.fedex.com/fedextrack/?tracknumbers=${number}`,
-    'ontrac': `https://www.ontrac.com/tracking?number=${number}`
+    'ont': `https://www.ontrac.com/tracking?number=${number}`
   };
   return urls[carrier.toLowerCase()] || '#';
 }
@@ -40,7 +40,7 @@ const TRACKING_PATTERNS = [
   { pattern: /\b((?:94|93|92|95)\d{20})\b/g, carrier: 'usps', priority: 1 },
   { pattern: /\b((?:EA|EC|CP|RA|LK|LN|LM|RH|RB|RD|RE)\d{9}US)\b/gi, carrier: 'usps', priority: 1 },
   { pattern: /\b((?:420\d{5})?(?:91|92|93|94|95)\d{20})\b/g, carrier: 'usps', priority: 2 },
-  { pattern: /(C\d{14})/gi, carrier: 'ontrac', priority: 3 },
+  { pattern: /(C\d{14})/gi, carrier: 'ont', priority: 3 },
   { pattern: /\b(\d{12})\b/g, carrier: 'fedex', priority: 5 },
   { pattern: /\b(\d{15})\b/g, carrier: 'fedex', priority: 5 },
   { pattern: /\b(\d{20})\b/g, carrier: 'fedex', priority: 5 }
