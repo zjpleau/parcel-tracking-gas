@@ -1,47 +1,42 @@
-# Parcel Tracking Sync (Google Apps Script)
+# Parcel Tracking Sync
 
-A modern, automated Google Apps Script project that scans your Gmail for shipping confirmation emails and automatically syncs tracking numbers to the **Parcel API**.
+A Google Apps Script utility that scans Gmail for shipping confirmation emails and syncs tracking numbers to the Parcel API.
 
-## 🚀 Features
+## Features
 
-- **Automated Scanning**: Scans Gmail threads for UPS, USPS, FedEx, and OnTrac tracking numbers.
-- **Smart Parsing**: Intelligent extraction of merchant names and package descriptions.
-- **Quota Management**: Built-in daily rate limiting to respect API tiers.
-- **Daily Summaries**: Optional daily email reports of all packages processed.
-- **Error Handling**: Graceful error management and notifications.
+- **Automated Scanning**: Identifies tracking numbers from UPS, USPS, FedEx, and OnTrac.
+- **Data Extraction**: Extracts merchant names and shipment descriptions.
+- **Rate Limiting**: Includes daily rate limits for API management.
+- **Reporting**: Generates daily email summaries of processed packages.
 
-## 🛠 Project Structure
+## Structure
 
-- `Code.js`: Main logic for scanning, parsing, and API synchronization.
-- `appsscript.json`: Manifest file for the Google Apps Script project.
-- `.clasp.json`: Configuration for the `clasp` CLI to sync with Google.
+- `Code.js`: Main logic for email scanning and API synchronization.
+- `appsscript.json`: Google Apps Script manifest.
+- `.clasp.json`: CLI configuration for synchronizing with the Google script environment.
 
-## 💻 Local Development Workflow
+## Development Workflow
 
-This project is set up for local development using [clasp](https://github.com/google/clasp).
+This project uses [clasp](https://github.com/google/clasp) for local development and deployment.
 
-### Pushing Changes to Google
-To push your local changes to the Google Apps Script project:
+### Deploying Changes
+Push local changes to Google Apps Script:
 ```bash
 clasp push
 ```
 
-### Pulling Changes from Google
-If you made changes directly in the Google Script editor:
+### Retrieving Changes
+Pull changes from the Google Script editor:
 ```bash
 clasp pull
 ```
 
 ### Version Control
-- Use **Git** for logic changes and refactoring.
-- Create **Pull Requests** for significant features.
-- Use **GitHub Issues** to track bugs or planned improvements.
+- Use Git for logic changes and project history.
+- Use GitHub Issues for bug tracking and feature planning.
 
-## ⚙️ Configuration
+## Configuration
 
-Ensure the following Script Properties are set in your Google Project:
-- `PARCEL_API_KEY`: Your Parcel API key.
-- `PARCEL_API_URL`: (Optional) Custom API endpoint.
-
----
-*Created and maintained with Antigravity.*
+Required Script Properties:
+- `PARCEL_API_KEY`: Your API key for Parcel.
+- `PARCEL_API_URL`: (Optional) Target API endpoint.
