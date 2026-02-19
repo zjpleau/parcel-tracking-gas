@@ -22,17 +22,17 @@ const CONFIG = {
   PARCEL_API_URL: PropertiesService.getScriptProperties().getProperty('PARCEL_API_URL') || 'https://api.parcel.app/external/add-delivery/',
   HOURS_TO_SCAN: 336, // 14 days
   LABEL_PROCESSED: 'Tracking/Processed',
-  LABEL_DELIVERED: 'Tracking/Delivered', 
-  SEND_PUSH_NOTIFICATION: false, 
-  DAILY_RATE_LIMIT: 20, 
-  API_ACTIVITY_KEY: 'PARCEL_API_ACTIVITY_V2', 
-  SENT_TRACKING_KEY: 'SENT_TRACKING_NUMBERS', 
-  DAILY_SUMMARY_KEY: 'DAILY_SUMMARY_DATA', 
-  SEND_EMAIL_SUMMARY: true, 
-  SEND_DAILY_SUMMARY: true, 
-  DAILY_SUMMARY_HOUR: 8, 
-  SEND_ERROR_NOTIFICATIONS: true, 
-  EMAIL_ADDRESS: Session.getActiveUser().getEmail() 
+  LABEL_DELIVERED: 'Tracking/Delivered',
+  SEND_PUSH_NOTIFICATION: false,
+  DAILY_RATE_LIMIT: 20,
+  API_ACTIVITY_KEY: 'PARCEL_API_ACTIVITY_V2',
+  SENT_TRACKING_KEY: 'SENT_TRACKING_NUMBERS',
+  DAILY_SUMMARY_KEY: 'DAILY_SUMMARY_DATA',
+  SEND_EMAIL_SUMMARY: true,
+  SEND_DAILY_SUMMARY: true,
+  DAILY_SUMMARY_HOUR: 8,
+  SEND_ERROR_NOTIFICATIONS: true,
+  EMAIL_ADDRESS: Session.getActiveUser().getEmail()
 };
 
 // Universal tracking number patterns
@@ -98,15 +98,15 @@ function scanShippingEmails() {
             const trackingNumber = result.trackingNumber;
             if (hasBeenSent(trackingNumber)) return;
             if (getTodayApiCallCount() >= CONFIG.DAILY_RATE_LIMIT) {
-               summary.rateLimitReached = true;
-               return;
+              summary.rateLimitReached = true;
+              return;
             }
 
             const cleanDesc = (result.description || generalDescription || "").substring(0, 100);
             const success = sendToParcelAPI({
               tracking_number: trackingNumber,
-              carrier_code: result.carrier.toLowerCase(), 
-              description: cleanDesc, 
+              carrier_code: result.carrier.toLowerCase(),
+              description: cleanDesc,
               send_push_confirmation: CONFIG.SEND_PUSH_NOTIFICATION
             });
 
@@ -132,7 +132,7 @@ function scanShippingEmails() {
     });
   } catch (error) {
     summary.errors.push(error.message);
-    if(CONFIG.SEND_ERROR_NOTIFICATIONS) sendErrorNotification(error, summary);
+    if (CONFIG.SEND_ERROR_NOTIFICATIONS) sendErrorNotification(error, summary);
   }
 
   accumulateDailySummary(summary);
@@ -145,7 +145,7 @@ function scanShippingEmails() {
  * Universal tracking number parser
  */
 function extractAllTrackingNumbers(text, senderEmail) {
-  const found = new Map(); 
+  const found = new Map();
   const isFedExEmail = senderEmail && senderEmail.toLowerCase().includes('fedex.com');
 
   TRACKING_PATTERNS.forEach(patternConfig => {
@@ -181,7 +181,7 @@ function extractUspsDigestData(htmlBody) {
   const results = [];
   const digestRegex = /FROM:\s*<b><span[^>]*>([^<]{3,100}?)<\/span><\/b>(?:(?!FROM:)[\s\S])*?<span[^>]*>(\d{20,})<\/span>/gi;
   const matches = htmlBody.matchAll(digestRegex);
-  
+
   for (const match of matches) {
     let shipperName = cleanHtml(match[1]);
     const trackingNumber = match[2].trim();
@@ -299,12 +299,12 @@ function recordApiActivity(success) {
 
 function getTodayApiCallCount() {
   const activity = JSON.parse(PropertiesService.getScriptProperties().getProperty(CONFIG.API_ACTIVITY_KEY) || '[]');
-  const today = new Date().setHours(0,0,0,0);
+  const today = new Date().setHours(0, 0, 0, 0);
   return activity.filter(a => a.t >= today).length;
 }
 
 function showApiQuotaStatus() {
-  const activity = JSON.parse(PropertiesService.getScriptProperties().getProperty(CONFIG.API_ACTIVITY_KEY) || '[]').sort((a,b) => a.t-b.t);
+  const activity = JSON.parse(PropertiesService.getScriptProperties().getProperty(CONFIG.API_ACTIVITY_KEY) || '[]').sort((a, b) => a.t - b.t);
   const count = activity.filter(a => a.t > Date.now() - 86400000).length;
   Logger.log(`Used: ${count} / ${CONFIG.DAILY_RATE_LIMIT}`);
   if (count > 0) Logger.log(`Next slot: ${new Date(activity[0].t + 86400000).toLocaleString()}`);
@@ -327,11 +327,26 @@ function markAsSent(num) {
 function accumulateDailySummary(summary) {
   const props = PropertiesService.getScriptProperties();
   let daily = JSON.parse(props.getProperty(CONFIG.DAILY_SUMMARY_KEY) || '{"date":"","totalEmailsScanned":0,"totalSuccessfullySent":0,"trackingDetails":[],"errors":[]}');
-  if (daily.date !== new Date().toDateString()) { daily = { date: new Date().toDateString(), totalEmailsScanned: 0, totalSuccessfullySent: 0, trackingDetails: [], errors: [] }; }
+
+  if (daily.date !== new Date().toDateString()) {
+    Logger.log('New day detected for summary. Resetting data.');
+    daily = { date: new Date().toDateString(), totalEmailsScanned: 0, totalSuccessfullySent: 0, trackingDetails: [], errors: [] };
+  }
+
   daily.totalEmailsScanned += summary.emailsScanned;
   daily.totalSuccessfullySent += summary.successfullySent;
   if (summary.trackingDetails) daily.trackingDetails.push(...summary.trackingDetails);
-  props.setProperty(CONFIG.DAILY_SUMMARY_KEY, JSON.stringify(daily));
+
+  try {
+    const serialized = JSON.stringify(daily);
+    if (serialized.length > 8000) {
+      Logger.log('Warning: Daily summary data approaching Property Service limits.');
+    }
+    props.setProperty(CONFIG.DAILY_SUMMARY_KEY, serialized);
+    Logger.log(`Accumulated summary: ${summary.successfullySent} new packages.`);
+  } catch (e) {
+    Logger.log('Error saving daily summary: ' + e.message);
+  }
 }
 
 function sendEmailSummary(summary) {
@@ -356,20 +371,72 @@ function sendEmailSummary(summary) {
 
 function checkAndSendDailySummary() {
   const now = new Date();
+  Logger.log(`Checking daily summary. Current hour: ${now.getHours()}, Target hour: ${CONFIG.DAILY_SUMMARY_HOUR}`);
+
   if (now.getHours() !== CONFIG.DAILY_SUMMARY_HOUR) return;
+
   const props = PropertiesService.getScriptProperties();
-  if (props.getProperty('LAST_DAILY_SUMMARY_SENT') === now.toDateString()) return;
-  const dailyData = JSON.parse(props.getProperty(CONFIG.DAILY_SUMMARY_KEY) || 'null');
-  if (!dailyData || dailyData.totalSuccessfullySent === 0) return;
-  
-  let html = `<div style="font-family: Arial; max-width: 600px;"><h2 style="color: #1a73e8;">Daily Shipping Summary</h2><p><b>Total Packages:</b> ${dailyData.totalSuccessfullySent}</p>`;
-  html += `<table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;"><tr style="background: #eee;"><th>Carrier</th><th>Number</th><th>Description</th></tr>`;
-  dailyData.trackingDetails.forEach(d => { html += `<tr><td>${d.carrier.toUpperCase()}</td><td><a href="${getTrackingUrl(d.carrier, d.trackingNumber)}">${d.trackingNumber}</a></td><td>${d.description}</td></tr>`; });
-  html += `</table></div>`;
-  
-  GmailApp.sendEmail(CONFIG.EMAIL_ADDRESS, `Daily Parcel Tracker Summary - ${dailyData.totalSuccessfullySent} Added`, '', { htmlBody: html });
-  props.setProperty('LAST_DAILY_SUMMARY_SENT', now.toDateString());
-  props.deleteProperty(CONFIG.DAILY_SUMMARY_KEY);
+  if (props.getProperty('LAST_DAILY_SUMMARY_SENT') === now.toDateString()) {
+    Logger.log('Daily summary already sent today.');
+    return;
+  }
+
+  const dailyDataStr = props.getProperty(CONFIG.DAILY_SUMMARY_KEY);
+  if (!dailyDataStr) {
+    Logger.log('No daily data found to summarize.');
+    return;
+  }
+
+  try {
+    const dailyData = JSON.parse(dailyDataStr);
+    if (!dailyData || dailyData.totalSuccessfullySent === 0) {
+      Logger.log('Daily data exists but contains 0 packages. Skipping email.');
+      // Update sent flag even if skipped to avoid repeated checks this hour
+      props.setProperty('LAST_DAILY_SUMMARY_SENT', now.toDateString());
+      return;
+    }
+
+    let html = `<div style="font-family: Arial; max-width: 600px;"><h2 style="color: #1a73e8;">Daily Shipping Summary</h2><p><b>Total Packages:</b> ${dailyData.totalSuccessfullySent}</p>`;
+    html += `<table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;"><tr style="background: #eee;"><th>Carrier</th><th>Number</th><th>Description</th></tr>`;
+    dailyData.trackingDetails.forEach(d => {
+      html += `<tr><td>${d.carrier.toUpperCase()}</td><td><a href="${getTrackingUrl(d.carrier, d.trackingNumber)}">${d.trackingNumber}</a></td><td>${d.description}</td></tr>`;
+    });
+    html += `</table></div>`;
+
+    GmailApp.sendEmail(CONFIG.EMAIL_ADDRESS, `Daily Parcel Tracker Summary - ${dailyData.totalSuccessfullySent} Added`, '', { htmlBody: html });
+    Logger.log(`Daily summary sent: ${dailyData.totalSuccessfullySent} packages.`);
+
+    props.setProperty('LAST_DAILY_SUMMARY_SENT', now.toDateString());
+    props.deleteProperty(CONFIG.DAILY_SUMMARY_KEY);
+  } catch (e) {
+    Logger.log('Error processing daily summary: ' + e.message);
+  }
+}
+
+/**
+ * Diagnostic tool: Run this manually to check current status
+ */
+function debugDailySummaryStatus() {
+  const props = PropertiesService.getScriptProperties();
+  const summary = props.getProperty(CONFIG.DAILY_SUMMARY_KEY);
+  const lastSent = props.getProperty('LAST_DAILY_SUMMARY_SENT');
+  const quota = getTodayApiCallCount();
+
+  const status = {
+    currentTime: new Date().toLocaleString(),
+    targetHour: CONFIG.DAILY_SUMMARY_HOUR,
+    lastSentDate: lastSent,
+    apiQuotaUsed: `${quota} / ${CONFIG.DAILY_RATE_LIMIT}`,
+    hasPendingData: summary !== null,
+    pendingDataLength: summary ? summary.length : 0,
+    parsedData: summary ? JSON.parse(summary) : "None"
+  };
+
+  Logger.log('--- SYSTEM STATUS ---');
+  Logger.log(JSON.stringify(status, null, 2));
+
+  GmailApp.sendEmail(CONFIG.EMAIL_ADDRESS, 'Parcel Tracker - System Health Check', JSON.stringify(status, null, 2));
+  Logger.log('Status report emailed.');
 }
 
 function setupTrigger() {
