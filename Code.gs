@@ -33,6 +33,9 @@ const TRACKING_PATTERNS = [
   { pattern: /\b((?:EA|EC|CP|RA|LK|LN|LM|RH|RB|RD|RE)\d{9}US)\b/gi, carrier: 'usps', priority: 1 }, // International
   { pattern: /\b((?:420\d{5})?(?:91|92|93|94|95)\d{20})\b/g, carrier: 'usps', priority: 2 }, // With or without 420 prefix
 
+  // OnTrac (starts with C followed by 14 digits)
+  { pattern: /\b(C\d{14})\b/gi, carrier: 'ontrac', priority: 3 },
+
   // FedEx (12, 15, or 20 digits - now with context-based detection)
   { pattern: /\b(\d{12})\b/g, carrier: 'fedex', priority: 5 }, // 12 digits
   { pattern: /\b(\d{15})\b/g, carrier: 'fedex', priority: 5 }, // 15 digits
