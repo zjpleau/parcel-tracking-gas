@@ -34,7 +34,7 @@ const TRACKING_PATTERNS = [
   { pattern: /\b((?:420\d{5})?(?:91|92|93|94|95)\d{20})\b/g, carrier: 'usps', priority: 2 }, // With or without 420 prefix
 
   // OnTrac (starts with C followed by 14 digits)
-  { pattern: /\b(C\d{14})\b/gi, carrier: 'ontrac', priority: 3 },
+  { pattern: /\b(C\d{14})\b/gi, carrier: 'ont', priority: 3 },
 
   // FedEx (12, 15, or 20 digits - now with context-based detection)
   { pattern: /\b(\d{12})\b/g, carrier: 'fedex', priority: 5 }, // 12 digits
@@ -51,8 +51,7 @@ function getTrackingUrl(carrier, number) {
     'ups': `https://www.ups.com/track?tracknum=${number}`,
     'usps': `https://tools.usps.com/go/TrackConfirmAction?tLabels=${number}`,
     'fedex': `https://www.fedex.com/fedextrack/?tracknumbers=${number}`,
-    'ontrac': `https://www.ontrac.com/tracking?number=${number}`,
-    'on-trac': `https://www.ontrac.com/tracking?number=${number}`
+    'ont': `https://www.ontrac.com/tracking?number=${number}`
   };
   return urls[carrier.toLowerCase()] || '#';
 }
