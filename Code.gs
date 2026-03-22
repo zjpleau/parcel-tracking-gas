@@ -416,8 +416,12 @@ function checkAndSendDailySummary() {
   if (props.getProperty('LAST_DAILY_SUMMARY_SENT') === now.toDateString()) return;
   const data = JSON.parse(props.getProperty(CONFIG.DAILY_SUMMARY_KEY) || 'null');
   if (!data) return;
-  let html = `<div style="font-family: Arial; max-width: 600px;"><h2>Daily Summary</h2><p>Total: ${data.totalSuccessfullySent}</p></div>`;
-  GmailApp.sendEmail(CONFIG.EMAIL_ADDRESS, `Daily Parcel Tracker Summary - ${data.totalSuccessfullySent} Added`, '', { htmlBody: html });
+  
+  if (data.totalSuccessfullySent > 0) {
+    let html = `<div style="font-family: Arial; max-width: 600px;"><h2>Daily Summary</h2><p>Total: ${data.totalSuccessfullySent}</p></div>`;
+    GmailApp.sendEmail(CONFIG.EMAIL_ADDRESS, `Daily Parcel Tracker Summary - ${data.totalSuccessfullySent} Added`, '', { htmlBody: html });
+  }
+
   props.setProperty('LAST_DAILY_SUMMARY_SENT', now.toDateString());
   props.deleteProperty(CONFIG.DAILY_SUMMARY_KEY);
 }
