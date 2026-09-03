@@ -36,6 +36,9 @@ const TRACKING_PATTERNS = [
   // OnTrac (starts with C followed by 14 digits)
   { pattern: /\b(C\d{14})\b/gi, carrier: 'ont', priority: 3 },
 
+  // LaserShip (starts with 1LS followed by 14 alphanumeric chars)
+  { pattern: /\b(1LS[A-Z0-9]{14})\b/gi, carrier: 'laser', priority: 3 },
+
   // FedEx (12, 15, or 20 digits - now with context-based detection)
   { pattern: /\b(\d{12})\b/g, carrier: 'fedex', priority: 5 }, // 12 digits
   { pattern: /\b(\d{15})\b/g, carrier: 'fedex', priority: 5 }, // 15 digits
@@ -51,7 +54,8 @@ function getTrackingUrl(carrier, number) {
     'ups': `https://www.ups.com/track?tracknum=${number}`,
     'usps': `https://tools.usps.com/go/TrackConfirmAction?tLabels=${number}`,
     'fedex': `https://www.fedex.com/fedextrack/?tracknumbers=${number}`,
-    'ont': `https://www.ontrac.com/tracking?number=${number}`
+    'ont': `https://www.ontrac.com/tracking?number=${number}`,
+    'laser': `https://www.ontrac.com/tracking?number=${number}`
   };
   return urls[carrier.toLowerCase()] || '#';
 }
@@ -226,7 +230,7 @@ function extractAllTrackingNumbers(text, senderEmail) {
  */
 function extractUspsDigestData(htmlBody) {
   const results = [];
-  const digestRegex = /FROM:\s*<b><span[^>]*>([^<]{3,100}?)<\/span><\/b>(?:(?!FROM:)[\s\S])*?<span[^>]*>(\d{20,})<\/span>/gi;
+  const digestRegex = /FROM:\s*<b><span[^>]*>([^<]*?)<\/span><\/b>(?:(?!FROM:)[\s\S])*?<span[^>]*>(\d{20,})<\/span>/gi;
   const matches = htmlBody.matchAll(digestRegex);
   
   for (const match of matches) {
@@ -239,7 +243,7 @@ function extractUspsDigestData(htmlBody) {
     results.push({
       trackingNumber: trackingNumber,
       carrier: 'usps',
-      description: shipperName
+      description: shipperName || 'USPS Package'
     });
   }
   return results;
