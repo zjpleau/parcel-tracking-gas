@@ -86,7 +86,7 @@ function scanShippingEmails() {
 
     const hoursAgo = CONFIG.HOURS_TO_SCAN;
     const timestamp = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
-    const query = `after:${Math.floor(timestamp.getTime() / 1000)} -label:${CONFIG.LABEL_PROCESSED} -label:${CONFIG.LABEL_DELIVERED} (tracking OR shipment OR shipped OR delivery OR "order confirmation" OR "your order" OR "Informed Delivery")`;
+    const query = `after:${Math.floor(timestamp.getTime() / 1000)} -label:${CONFIG.LABEL_PROCESSED} -label:${CONFIG.LABEL_DELIVERED} (tracking OR shipment OR shipped OR delivery OR "order confirmation" OR "your order" OR "Informed Delivery" OR from:ups.com)`;
 
     const threads = GmailApp.search(query, 0, 50);
 
@@ -268,13 +268,30 @@ function isLikelyNotTrackingNumber(num, isFedExContext = false) {
 
 function isLikelyFedExTracking(text, trackingNumber) {
   if (!text || !trackingNumber) return false;
-  const index = text.indexOf(trackingNumber);
-  if (index === -1) return false;
-  const context = text.substring(Math.max(0, index - 300), Math.min(text.length, index + trackingNumber.length + 300)).toLowerCase();
-  let score = 0;
-  if (context.includes('fedex') || context.includes('federal express')) score += 3;
-  if (context.includes('tracking') || context.includes('shipment')) score += 2;
-  return score >= 3;
+  const escapedTrackingNumber = trackingNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const strongTrackingLabel = new RegExp(`tracking[\\s\\S]{0,80}${escapedTrackingNumber}`, 'i');
+  let searchFrom = 0;
+
+  while (searchFrom < text.length) {
+    const index = text.indexOf(trackingNumber, searchFrom);
+    if (index === -1) return false;
+
+    const context = text.substring(
+      Math.max(0, index - 300),
+      Math.min(text.length, index + trackingNumber.length + 300)
+    );
+    const lowerContext = context.toLowerCase();
+    let score = 0;
+
+    if (lowerContext.includes('fedex') || lowerContext.includes('federal express')) score += 3;
+    if (strongTrackingLabel.test(context)) score += 3;
+    else if (lowerContext.includes('tracking') || lowerContext.includes('shipment')) score += 2;
+
+    if (score >= 3) return true;
+    searchFrom = index + trackingNumber.length;
+  }
+
+  return false;
 }
 
 function extractEmail(fromField) {
@@ -355,9 +372,21 @@ function createLabelIfNeeded(labelName) {
 }
 
 function isDelivered(subject, body) {
-  const keywords = [/delivered/i, /delivery complete/i, /successfully delivered/i];
-  const combined = `${subject} ${body}`;
-  return keywords.some(p => p.test(combined));
+  const cleanSubject = cleanHtml(subject || '');
+  const combined = `${cleanSubject} ${cleanHtml(body || '')}`;
+  const definitiveDeliveryPatterns = [
+    /\b(?:has|have)\s+(?:already\s+)?been\s+delivered\b/i,
+    /\bwas\s+(?:just\s+)?delivered\b/i,
+    /\bis\s+now\s+delivered\b/i,
+    /\bsuccessfully\s+delivered\b/i,
+    /\bdelivery\s+(?:is\s+)?complete\b/i,
+    /\bstatus\s*:?\s*delivered\b/i,
+    /\b(?:package|shipment|order)\s+delivered\b/i,
+    /\bwe(?:'|’)?ve\s+(?:successfully\s+)?delivered\b/i,
+    /\bdelivered\s+(?:on|at|to)\b/i
+  ];
+
+  return definitiveDeliveryPatterns.some(pattern => pattern.test(combined));
 }
 
 function hasBeenSent(trackingNumber) {
@@ -454,7 +483,7 @@ function sendDailySummaryNow() {
 }
 
 function manualSyncRecentEmails() {
-  const threads = GmailApp.search(`after:${Math.floor((Date.now() - 14 * 24 * 60 * 60 * 1000) / 1000)} (tracking OR shipment OR shipped OR delivery)`, 0, 50);
+  const threads = GmailApp.search(`after:${Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000)} (tracking OR shipment OR shipped OR delivery)`, 0, 50);
   threads.forEach(t => {
     t.getMessages().forEach(m => {
       const email = extractEmail(m.getFrom());
