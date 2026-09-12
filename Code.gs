@@ -312,6 +312,16 @@ function extractDescription(subject, body, senderEmail) {
     if (match) return match[1].trim();
   }
   if (senderEmail.includes('ups.com')) {
+    const shipperField = body.match(/<span\b[^>]*\bid=["']shipperAndArrival["'][^>]*>([\s\S]*?)<\/span>/i);
+    if (shipperField) {
+      const emphasizedShipper = shipperField[1].match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/i);
+      if (emphasizedShipper) {
+        const shipperName = cleanHtml(emphasizedShipper[1]).trim();
+        if (shipperName) return shipperName;
+      }
+      const shipperName = cleanHtml(shipperField[1]).replace(/^From\s+/i, '').trim();
+      if (shipperName) return shipperName;
+    }
     const match = cleanBody.match(/From\s+([A-Z0-9\s\.\-]{3,30})/i);
     if (match) return match[1].trim();
   }

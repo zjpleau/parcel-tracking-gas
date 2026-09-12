@@ -29,6 +29,43 @@ test('UPS estimated-delivery email remains eligible and exposes its tracking num
   );
 });
 
+test('UPS shipper description excludes text left inside removed HTML sections', () => {
+  const body = [
+    '<span id="shipperAndArrival">From <strong>AMAZON.COM</strong></span>',
+    '<!--ns removed',
+    '<tr><td><span id="alertMessage"></span></td></tr>',
+    'removed -->',
+    '<span id="deliveryDateTimeLabel">Estimated Delivery</span>'
+  ].join('\n');
+
+  assert.equal(
+    context.extractDescription(
+      'UPS Ship Notification, Tracking Number 1Z09487A0362445615',
+      body,
+      'mcinfo@ups.com'
+    ),
+    'AMAZON.COM'
+  );
+});
+
+test('UPS estimated-delivery template uses only the emphasized merchant name', () => {
+  const body = [
+    '<span id="shipperAndArrival">',
+    'Your <strong>FORMULAND INC</strong> package now has an estimated delivery date,',
+    'and may be delivered by our trusted delivery partner.',
+    '</span>'
+  ].join('\n');
+
+  assert.equal(
+    context.extractDescription(
+      'UPS: Get Ready for Your Package!',
+      body,
+      'mcinfo@ups.com'
+    ),
+    'FORMULAND INC'
+  );
+});
+
 test('future delivery wording is not treated as completed delivery', () => {
   const examples = [
     'Your package may be delivered by a trusted partner.',
