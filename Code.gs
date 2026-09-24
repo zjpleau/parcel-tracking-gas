@@ -27,6 +27,7 @@ const CONFIG = {
 const TRACKING_PATTERNS = [
   // UPS (highest priority - very distinctive format)
   { pattern: /\b(1Z[0-9A-Z]{16})\b/gi, carrier: 'ups', priority: 1 },
+  { pattern: /\b(1R[0-9A-Z]{26})\b/gi, carrier: 'ups', priority: 1 }, // Roadie online tracking number
 
   // USPS (high priority - distinctive prefixes)
   { pattern: /\b((?:94|93|92|95)\d{20})\b/g, carrier: 'usps', priority: 1 }, // 22-digit starting with 94/93/92/95

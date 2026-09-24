@@ -29,6 +29,19 @@ test('UPS estimated-delivery email remains eligible and exposes its tracking num
   );
 });
 
+test('Home Depot shipping email exposes a 28-character UPS Roadie tracking number', () => {
+  const text = [
+    'Order # WN71405890 Shipped: Your order is on its way, Zachary!',
+    'Delivery by: UPS',
+    'Tracking #: 1R00FHUBVLAT27BE43VVID585AEB'
+  ].join('\n');
+
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(context.extractAllTrackingNumbers(text, 'homedepot@order.homedepot.com'))),
+    [{ trackingNumber: '1R00FHUBVLAT27BE43VVID585AEB', carrier: 'ups' }]
+  );
+});
+
 test('UPS shipper description excludes text left inside removed HTML sections', () => {
   const body = [
     '<span id="shipperAndArrival">From <strong>AMAZON.COM</strong></span>',
