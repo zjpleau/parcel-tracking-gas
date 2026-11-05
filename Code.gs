@@ -308,6 +308,20 @@ function cleanHtml(text) {
 function extractDescription(subject, body, senderEmail) {
   const cleanBody = cleanHtml(body);
   const cleanSubject = cleanHtml(subject);
+  if (/@(?:[a-z0-9-]+\.)*fedex\.com$/i.test(senderEmail)) {
+    // Keep field and paragraph boundaries so names do not include addresses or footer text.
+    const lines = body
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>|<script\b[^>]*>[\s\S]*?<\/script>|<!--[\s\S]*?-->/gi, '')
+      .replace(/<br\b[^>]*>|<\/(?:p|div|td|tr|table|h[1-6])\s*>/gi, '\n')
+      .split(/\r?\n/).map(line => cleanHtml(line)).filter(Boolean);
+    const headline = lines.join('\n').match(/\bshipment from[^\S\n]+(.+?)[^\S\n]+(?:is|has)\b/i);
+    if (headline) return headline[1].trim();
+    for (let i = 0; i < lines.length; i++) {
+      if (/^From\s*:?$/i.test(lines[i]) && lines[i + 1]) return lines[i + 1];
+      const preheader = lines[i].match(/\bshipment from\s+(.+?)\.?$/i);
+      if (preheader) return preheader[1].trim();
+    }
+  }
   if (senderEmail.includes('usps.com')) {
     const match = cleanBody.match(/From: ([^:]+?)(?: Expected|$)/i);
     if (match) return match[1].trim();

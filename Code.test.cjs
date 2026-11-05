@@ -13,6 +13,54 @@ const context = vm.createContext({
 
 vm.runInContext(source, context);
 
+test('FedEx shipment headline supplies the merchant name', () => {
+  const body = '<td>Your shipment from  Innovative Organic Nursery is on the way.</td>';
+  assert.equal(context.extractDescription('Your shipment is on the way 879748047913', body,
+    'trackingupdates@fedex.com'), 'Innovative Organic Nursery');
+});
+
+test('FedEx delivery-date preheader stops at the end of its paragraph', () => {
+  const body = '<p>We have an estimated delivery date for your shipment from Innovative Organic Nursery.</p>' +
+    '<p>Hi, Zachary.</p><p>Tracking details</p>';
+  assert.equal(context.extractDescription('Your shipment is on the way', body,
+    'trackingupdates@fedex.com'), 'Innovative Organic Nursery');
+});
+
+test('FedEx combined plain text and HTML keeps preheader and headline separate', () => {
+  const body = 'We have an estimated delivery date for your shipment from Innovative Organic Nursery.\n' +
+    'Hi, Zachary.\nYour shipment from Innovative Organic Nursery is on the way.\n' +
+    '<p>We have an estimated delivery date for your shipment from Innovative Organic Nursery.</p>' +
+    '<td>Your shipment from Innovative Organic Nursery is on the way.</td>';
+  assert.equal(context.extractDescription('Your shipment is on the way', body,
+    'trackingupdates@fedex.com'), 'Innovative Organic Nursery');
+});
+
+test('FedEx From table field excludes duplicate company name and address', () => {
+  const body = '<table><tr><td><table><tr><td>From</td></tr></table></td>' +
+    '<td><table><tr><td>Innovative Organic Nursery\n<br/>Innovative Organic Nursery' +
+    '<br/>640 Twin View Blvd<br/>Redding, CA, US<br/>96003</td></tr></table></td></tr></table>';
+  assert.equal(context.extractDescription('Your shipment is on the way', body,
+    'trackingupdates@fedex.com'), 'Innovative Organic Nursery');
+});
+
+test('FedEx plain-text From field preserves merchant punctuation and excludes address', () => {
+  const body = 'Tracking details\nFrom\nA & B Co., Inc.\n123 Example St\nTo\nRecipient';
+  assert.equal(context.extractDescription('Your shipment is on the way', body,
+    'trackingupdates@fedex.com'), 'A & B Co., Inc.');
+});
+
+test('FedEx headline decodes HTML in merchant names', () => {
+  assert.equal(context.extractDescription('Your shipment is on the way',
+    '<td>Your shipment from <strong>A &amp; B Co., Inc.</strong> is on the way.</td>',
+    'trackingupdates@fedex.com'), 'A & B Co., Inc.');
+});
+
+test('FedEx email without a merchant retains its carrier fallback', () => {
+  assert.equal(context.extractDescription('Your shipment is on the way',
+    '<p>Please do not reply. This email was sent from an unattended mailbox.</p>',
+    'trackingupdates@fedex.com'), 'Fedex');
+});
+
 test('UPS estimated-delivery email remains eligible and exposes its tracking number', () => {
   const subject = 'UPS: Get Ready for Your Package!';
   const body = [
